@@ -35,7 +35,7 @@ with col1:
     if selected_date_str not in data:
         data[selected_date_str] = []
 
-    st.title("📝 今日やることリスト")
+    st.markdown("### 📝 今日やることリスト")
 
     # -----------------------
     # タスク追加
