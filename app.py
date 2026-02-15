@@ -40,9 +40,9 @@ data = load_data()
 if user_id not in data:
     data[user_id] = {}
 
-col1, col2 = st.columns([2.5, 1])
+colA, colB = st.columns([2.5, 1])
 
-with col1:
+with colA:
 
     # -----------------------
     # 日付選択
@@ -65,14 +65,20 @@ with col1:
     for i, task in enumerate(data[user_id][selected_date_str]):
         if not task["done"]:
 
-            cols = st.columns([5,1])
+            col1, col2 = st.columns([8,1])
 
-            if cols[0].checkbox(task["title"], key=f"todo_{i}"):
+            with col1:
+                checked = st.checkbox(task["title"], key=f"todo_{i}")
+
+            with col2:
+                delete = st.button("🗑", key=f"del_{i}")
+
+            if checked:
                 data[user_id][selected_date_str][i]["done"] = True
                 save_data(data)
                 st.rerun()
 
-            if cols[1].button("🗑", key=f"del_{i}"):
+            if delete:
                 data[user_id][selected_date_str].pop(i)
                 save_data(data)
                 st.rerun()
@@ -83,7 +89,7 @@ with col1:
         if task["done"]:
             st.write(f"✔ {task['title']}")
 
-with col2:
+with colB:
     st.markdown("##### 🏆 達成スタンプ")
 
     done_count = sum(
