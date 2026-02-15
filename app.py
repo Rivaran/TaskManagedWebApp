@@ -3,6 +3,12 @@ import json
 import os
 from datetime import date
 
+if "user_id" not in st.session_state:
+    import uuid
+    st.session_state.user_id = str(uuid.uuid4())
+
+user_id = st.session_state.user_id
+
 st.set_page_config(page_title="Daily Check App", layout="centered")
 
 DATA_FILE = "tasks.json"
@@ -22,7 +28,7 @@ def save_data(data):
 
 def add_task():
     if st.session_state.new_task.strip():
-        data[selected_date_str].append({
+        data[user_id][selected_date_str].append({
             "title": st.session_state.new_task,
             "done": False
         })
@@ -30,6 +36,9 @@ def add_task():
         st.session_state.new_task = ""
 
 data = load_data()
+
+if user_id not in data:
+    data[user_id] = {}
 
 col1, col2 = st.columns([2.5, 1])
 
@@ -41,8 +50,8 @@ with col1:
     selected_date = st.date_input("日付を選択", date.today())
     selected_date_str = str(selected_date)
 
-    if selected_date_str not in data:
-        data[selected_date_str] = []
+    data.setdefault(user_id, {})
+    data[user_id].setdefault(selected_date_str, [])
 
     st.markdown("### 📝 今日やることリスト")
 
@@ -53,16 +62,25 @@ with col1:
     st.button("追加", on_click=add_task)
 
     st.subheader("📌 今日のタスク")
-    for i, task in enumerate(data[selected_date_str]):
+    for i, task in enumerate(data[user_id][selected_date_str]):
         if not task["done"]:
-            if st.checkbox(task["title"], key=f"todo_{i}"):
-                data[selected_date_str][i]["done"] = True
-                save_data(data)
-                st.rerun()
+            col_task, col_del = st.columns([4, 1])
+
+            with col_task:
+                if st.checkbox(task["title"], key=f"todo_{i}"):
+                    data[user_id][selected_date_str][i]["done"] = True
+                    save_data(data)
+                    st.rerun()
+
+            with col_del:
+                if st.button("❌", key=f"del_{i}"):
+                    data[user_id][selected_date_str].pop(i)
+                    save_data(data)
+                    st.rerun()
 
     st.subheader("✅ やったこと")
 
-    for task in data[selected_date_str]:
+    for task in data[user_id][selected_date_str]:
         if task["done"]:
             st.write(f"✔ {task['title']}")
 
@@ -71,7 +89,7 @@ with col2:
 
     done_count = sum(
         task["done"]
-        for tasks in data.values()
+        for tasks in data[user_id].values()
         for task in tasks
     )
 
