@@ -64,7 +64,7 @@ with col1:
     st.subheader("📌 今日のタスク")
     for i, task in enumerate(data[user_id][selected_date_str]):
         if not task["done"]:
-            col_task, col_del = st.columns([2.5, 1])
+            col_task, col_del = st.columns([6, 1])
 
             with col_task:
                 if st.checkbox(task["title"], key=f"todo_{i}"):
@@ -73,7 +73,7 @@ with col1:
                     st.rerun()
 
             with col_del:
-                if st.button("❌", key=f"del_{i}"):
+                if st.button("🗑", key=f"del_{i}"):
                     data[user_id][selected_date_str].pop(i)
                     save_data(data)
                     st.rerun()
