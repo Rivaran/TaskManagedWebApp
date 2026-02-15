@@ -64,7 +64,7 @@ with col1:
     st.subheader("📌 今日のタスク")
     for i, task in enumerate(data[user_id][selected_date_str]):
         if not task["done"]:
-            col_task, col_del = st.columns([4, 1])
+            col_task, col_del = st.columns([3, 1])
 
             with col_task:
                 if st.checkbox(task["title"], key=f"todo_{i}"):
