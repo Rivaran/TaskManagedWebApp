@@ -20,6 +20,15 @@ def save_data(data):
     with open(DATA_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
+def add_task():
+    if st.session_state.new_task.strip():
+        data[selected_date_str].append({
+            "title": st.session_state.new_task,
+            "done": False
+        })
+        save_data(data)
+        st.session_state.new_task = ""
+
 data = load_data()
 
 col1, col2 = st.columns([2.5, 1])
@@ -40,17 +49,8 @@ with col1:
     # -----------------------
     # タスク追加
     # -----------------------
-    with st.form("add_task"):
-        new_task = st.text_input("やることを追加")
-        submitted = st.form_submit_button("追加")
-        if submitted and new_task:
-            data[selected_date_str].append({
-                "title": new_task,
-                "done": False
-            })
-            save_data(data)
-            st.success("追加しました")
-            st.rerun()
+    st.text_input("やることを追加", key="new_task")
+    st.button("追加", on_click=add_task)
 
     st.subheader("📌 今日のタスク")
     for i, task in enumerate(data[selected_date_str]):
