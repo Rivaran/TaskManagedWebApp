@@ -46,6 +46,7 @@ def get_tasks():
     response = supabase.table("tasks") \
         .select("*") \
         .eq("task_date", str(selected_date)) \
+        .eq("user_id", user_id) \
         .order("id") \
         .execute()
 
@@ -54,6 +55,7 @@ def get_tasks():
 def get_all_tasks():
     response = supabase.table("tasks") \
         .select("*") \
+        .eq("user_id", user_id) \
         .order("id") \
         .execute()
 
@@ -75,6 +77,7 @@ def mark_done(task_id):
     supabase.table("tasks") \
         .update({"done": True}) \
         .eq("id", task_id) \
+        .eq("user_id", user_id) \
         .execute()
     st.rerun()
 
@@ -82,6 +85,7 @@ def delete_task(task_id):
     supabase.table("tasks") \
         .delete() \
         .eq("id", task_id) \
+        .eq("user_id", user_id) \
         .execute()
     st.rerun()
 
