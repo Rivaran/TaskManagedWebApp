@@ -71,7 +71,6 @@ def add_task():
         }).execute()
 
         st.session_state.new_task = ""
-        st.rerun()
 
 def mark_done(task_id):
     supabase.table("tasks") \
