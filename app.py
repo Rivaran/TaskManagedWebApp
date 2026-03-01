@@ -1,102 +1,136 @@
 import streamlit as st
-import json
 import os
 from datetime import date
+from streamlit_supabase_auth import login_form
+from supabase import create_client
 
-if "user_id" not in st.session_state:
-    import uuid
-    st.session_state.user_id = str(uuid.uuid4())
-
-user_id = st.session_state.user_id
+# -----------------------
+# Supabase client
+# -----------------------
+supabase = create_client(
+    os.getenv("SUPABASE_URL"),
+    os.getenv("SUPABASE_KEY")
+)
 
 st.set_page_config(page_title="Daily Check App", layout="centered")
 
-DATA_FILE = "tasks.json"
+selected_date = date.today()
 
 # -----------------------
-# データ読み込み
+# Login
 # -----------------------
-def load_data():
-    if os.path.exists(DATA_FILE):
-        with open(DATA_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return {}
+session = login_form(
+    url=os.getenv("SUPABASE_URL"),
+    apiKey=os.getenv("SUPABASE_KEY"),
+    providers=["google"]
+)
 
-def save_data(data):
-    with open(DATA_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+if not session:
+    st.stop()
+
+access_token = session["access_token"]
+
+supabase = create_client(
+    os.getenv("SUPABASE_URL"),
+    os.getenv("SUPABASE_KEY")
+)
+
+supabase.postgrest.auth(access_token)
+
+user_id = session["user"]["id"]
+
+# -----------------------
+# DB操作
+# -----------------------
+def get_tasks():
+    response = supabase.table("tasks") \
+        .select("*") \
+        .eq("task_date", str(selected_date)) \
+        .order("id") \
+        .execute()
+
+    return response.data
+
+def get_all_tasks():
+    response = supabase.table("tasks") \
+        .select("*") \
+        .order("id") \
+        .execute()
+
+    return response.data
 
 def add_task():
     if st.session_state.new_task.strip():
-        data[user_id][selected_date_str].append({
+        supabase.table("tasks").insert({
+            "user_id": user_id,
+            "task_date": str(selected_date),
             "title": st.session_state.new_task,
             "done": False
-        })
-        save_data(data)
+        }).execute()
+
         st.session_state.new_task = ""
+        st.rerun()
 
-data = load_data()
+def mark_done(task_id):
+    supabase.table("tasks") \
+        .update({"done": True}) \
+        .eq("id", task_id) \
+        .execute()
+    st.rerun()
 
-if user_id not in data:
-    data[user_id] = {}
+def delete_task(task_id):
+    supabase.table("tasks") \
+        .delete() \
+        .eq("id", task_id) \
+        .execute()
+    st.rerun()
 
+# -----------------------
+# UI
+# -----------------------
 colA, colB = st.columns([2.5, 1])
 
 with colA:
+
+    st.markdown("### 📝 今日やることリスト")
 
     # -----------------------
     # 日付選択
     # -----------------------
     selected_date = st.date_input("日付を選択", date.today())
-    selected_date_str = str(selected_date)
 
-    data.setdefault(user_id, {})
-    data[user_id].setdefault(selected_date_str, [])
-
-    st.markdown("### 📝 今日やることリスト")
-
-    # -----------------------
-    # タスク追加
-    # -----------------------
     st.text_input("やることを追加", key="new_task")
     st.button("追加", on_click=add_task)
 
-    st.subheader("📌 今日のタスク")
-    for i, task in enumerate(data[user_id][selected_date_str]):
-        if not task["done"]:
+    tasks = get_tasks()
 
+    st.subheader("📌 今日のタスク")
+
+    for task in tasks:
+        if not task["done"]:
             col1, col2 = st.columns([8,1])
 
             with col1:
-                checked = st.checkbox(task["title"], key=f"todo_{i}")
+                if st.checkbox(task["title"], key=f"check_{task['id']}"):
+                    mark_done(task["id"])
 
             with col2:
-                delete = st.button("🗑", key=f"del_{i}")
-
-            if checked:
-                data[user_id][selected_date_str][i]["done"] = True
-                save_data(data)
-                st.rerun()
-
-            if delete:
-                data[user_id][selected_date_str].pop(i)
-                save_data(data)
-                st.rerun()
+                if st.button("🗑", key=f"del_{task['id']}"):
+                    delete_task(task["id"])
 
     st.subheader("✅ やったこと")
 
-    for task in data[user_id][selected_date_str]:
+    for task in tasks:
         if task["done"]:
             st.write(f"✔ {task['title']}")
 
 with colB:
+
     st.markdown("##### 🏆 達成スタンプ")
 
-    done_count = sum(
-        task["done"]
-        for tasks in data[user_id].values()
-        for task in tasks
-    )
+    all_tasks = get_all_tasks()
+
+    done_count = sum(1 for task in all_tasks if task["done"])
 
     st.markdown(
         f"<div style='font-size:40px; line-height:1.6;'>"
@@ -104,4 +138,3 @@ with colB:
         "</div>",
         unsafe_allow_html=True
     )
-
