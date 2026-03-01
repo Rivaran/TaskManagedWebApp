@@ -112,15 +112,8 @@ with colA:
 
     for task in tasks:
         if not task["done"]:
-            col1, col2 = st.columns([8,1])
-
-            with col1:
-                if st.checkbox(task["title"], key=f"check_{task['id']}"):
-                    mark_done(task["id"])
-
-            with col2:
-                if st.button("🗑", key=f"del_{task['id']}"):
-                    delete_task(task["id"])
+            if st.checkbox(task["title"], key=f"check_{task['id']}"):
+                mark_done(task["id"])
 
     st.subheader("✅ やったこと")
 
